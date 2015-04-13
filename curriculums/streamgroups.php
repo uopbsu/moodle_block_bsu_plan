@@ -197,9 +197,10 @@ function display_enrolpage_stream($yid, $fid, $planid, $term, $did, $eid, $fid2,
       </td>
     </tr>
 
+    <form name="enrolform" id="enrolform" method="post" action="streamgroups.php">
     <tr>
       <td valign="top">
-          <form name="enrolform" id="enrolform" method="post" action="streamgroups.php">
+
             <input type="hidden" name="yid" value="<?php echo $yid ?>" />
             <input type="hidden" name="fid" value="<?php echo $fid ?>" />
             <input type="hidden" name="pid" value="<?php echo $planid ?>" />
@@ -272,8 +273,9 @@ function display_enrolpage_stream($yid, $fid, $planid, $term, $did, $eid, $fid2,
          </select>
        </td>
     </tr>
+   </form>
   </table>
-</form>
+
 
 <?php
 }

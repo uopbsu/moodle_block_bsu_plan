@@ -215,6 +215,7 @@
                         if ($DB->delete_records_select('bsu_discipline_semestr', "id = $dsid")) {
                             notify("Удалена строка в bsu_discipline_semestr (1) - $dsid<br>");
                             delete_charge_discipline_term($frm, $absenterm);
+                            delete_stream_discipline_term($frm, $term);
                             // add_to_log(1, 'discipline', 'delete semestr', "planid=$frm->pid&numsemestr=$term", $frm->dname_name, $frm->did, $USER->id);
                             add_to_bsu_plan_log('discipline:delete term', $frm->pid, $frm->did, "planid=$frm->pid&numsemestr=$absenterm", $frm->dname_name);
                         } else {
@@ -229,7 +230,7 @@
                         }                
                         $DB->update_record('bsu_discipline_semestr', $rec);        
                     }  
-                }    
+                }
             }
         }
 
@@ -239,10 +240,10 @@
             if ($discipline_semestrid > 0) {
                 if (is_empty_object($obj)) {
                     // echo 'delete 1 ' .  $discipline_semestrid . '<br>';
-                    
                     if ($DB->delete_records_select('bsu_discipline_semestr', "id = $discipline_semestrid")) {
                         notify("Удалена строка в bsu_discipline_semestr (2) - $discipline_semestrid<br>");
                         delete_charge_discipline_term($frm, $term);
+                        delete_stream_discipline_term($frm, $term);
                         // add_to_log(1, 'discipline', 'delete semestr', "planid=$frm->pid&numsemestr=$term", $frm->dname_name, $frm->did, $USER->id);
                         add_to_bsu_plan_log('discipline:delete term', $frm->pid, $frm->did, "planid=$frm->pid&numsemestr=$term", $frm->dname_name);
                     } else {
@@ -681,6 +682,7 @@ $maxsem = 16;
                         <tr>
                             <td align="center">
                                 <input type="hidden" name="dname_name"  value="<?php echo $dname->name; ?>"/>
+                                <input type="hidden" name="disciplinenameid"  value="<?php echo $dname->disciplinenameid; ?>"/>
                                 <b><?php echo $dname->name; ?></b>
                             </td>
                         </tr>
@@ -1166,8 +1168,27 @@ function update_charge_with_save_teachingload($yid, $did, $planid)
     return true;
 }
 
+/*
+ * Функция удаляет все потоки по дисциплине в семестре
+ * @param $frm - объект с характеристиками дисциплины
+ * @param $term - номер семестра
+ */
+function delete_stream_discipline_term($frm, $term)
+{
+    global $DB, $OUTPUT;
 
-
+    // print_object($frm);
+    // echo $term . '<br>';
+    // находим существующую нагрузку
+    $conditions = array ('yearid' => $frm->yid, 'planid' => $frm->pid, 'disciplinenameid' => $frm->disciplinenameid, 'term' => $term);
+    print_object($conditions);
+    if ($streams = $DB->get_records('bsu_discipline_stream_mask', $conditions, '', 'id, id as id2'))	{
+        foreach ($streams as $stream)   {
+            $DB->delete_records_select('bsu_discipline_stream', "streammaskid = $stream->id");
+        }
+        $DB->delete_records('bsu_discipline_stream_mask', $conditions);
+    }
+}
 
 
 ?>
