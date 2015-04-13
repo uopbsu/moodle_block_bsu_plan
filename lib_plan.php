@@ -548,8 +548,9 @@ function listbox_subdepartment($scriptname, &$sid, $fid, $isshowall=true, $yid=1
         // ksort($menu2);
         $menu = array(0=>get_string('selectsubdepartment', 'block_bsu_schedule') . '...', 1=>"_Не определена", array('Кафедры факультета'=>$menu11), array('Другие кафедры'=>$menu2));  
     } else {
+        $menu11[0] = get_string('selectsubdepartment', 'block_bsu_schedule') . '...';
         $menu = $menu11;
-        // ksort($menu);
+        ksort($menu);
     }
     
     echo '<tr align="left"> <td align=right>'.get_string('subdepartment', 'block_bsu_schedule').': </td><td align="left">';
