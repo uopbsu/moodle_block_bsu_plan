@@ -53,7 +53,7 @@
     require_login();
 
     $time0 = time();
-    $select = "editplan=1 and timestart<$time0 and timeend>$time0";
+    $select = "timestart<$time0 and timeend>$time0 and LOCATE('$yid', editplan)>0";
     $ACCESS_USER = $DB->get_records_select_menu('bsu_operator_dean', $select, null, '', 'id, userid');
 
     $isdelete = false;
@@ -237,9 +237,7 @@
     }    
 
     switch($action) {
-        case 'shiftleft':  shift_discipline($fid, $pid, $delta);
-        break;
-        case 'shiftright': shift_discipline($fid, $pid, $delta);
+        case 'shiftcontent': if ($delta>0) shift_content($fid, $pid, $delta);
         break;
     }            
             
@@ -478,6 +476,38 @@
                             $term = print_tabs_terms("disciplines.php?yid=$yid&fid=$fid&pid={$plan->id}", $yid, $fid, $plan, $tab, $term, $agroups);
                                 //echo $OUTPUT->notification(get_string('no_inf_avail', 'block_bsu_plan'), 'notifysuccess');
                             switch($term)   {
+                                case 108:
+                                    if (is_siteadmin()) {    
+                                        echo '<form name="shiftdiscip" method="post" action="disciplines.php"><br>
+                                        <font color=red><b><center>ВНИМАНИЕ!!! Операция смещения семетров изменяет всю информацию для подписанных на план групп (расписание, успеваемость, нагрузка и другое).</center></b></font><br>
+                                        <table align=center><tr><td>';
+                                        echo '<input type="submit" name="shiftcontent" value="Сместить все содержимое плана на">';
+                                         
+                                        $menu = array();
+                                        $menu[-20] = get_string('select').'...'; 
+                                        for($i=-12;$i<13;$i++) {
+                                            if ($i!=0) {
+                                               $menu[$i] = $i; 
+                                            }
+                                        }
+                                        echo '</td><td align="left">';
+                                        echo html_writer::select($menu, 'delta', -20, '');
+                                        echo '</td><td>семестр (-а/-ов)'; 
+                                        echo '</td></tr></table>';
+                                        
+                                        echo  '<input type="hidden" name="yid" value="' .  $yid . '">';
+                                    	echo  '<input type="hidden" name="fid" value="' .  $fid . '">';
+                                    	echo  '<input type="hidden" name="pid" value="' .  $pid . '">';
+                                        echo  '<input type="hidden" name="tab" value="' .  $tab . '" />';  
+                                        echo  '<input type="hidden" name="term" value="' .  $term . '">';                                  
+                                        echo  '<input type="hidden" name="action" value="shiftcontent"></form>';                            
+                                    } else {
+                                        echo '<font color=red><center>У Вас нет прав выполнения операций с планом</center></font>';
+                                    }
+                                    
+                                break;  
+                                
+                                
                                  case 107:
                                     //  echo $OUTPUT->heading('Журнал операций', 3); 
                                     $table107 = table_bsu_plan_log($yid, $fid, $plan);
@@ -581,6 +611,7 @@
                                     $options = array('action'=> 'excel', 'yid' => $yid, 'fid' => $fid, 'pid' => $plan->id, 'term' => $term, 'tab'=>$tab, 'sesskey' => sesskey());
                                     echo '<br><center>'.$OUTPUT->single_button(new moodle_url($scriptname, $options), get_string('downloadexcel'), 'get', $options).'</center><br>';
                                     
+                                    
                                 break;    
 
                                 case 99:
@@ -605,6 +636,8 @@
                                     $table = table_disciplines($yid, $fid, $plan, $term, $agroups, $showkaf, $tab);
                                     
                             }    
+                            
+                            
                             
                             if (!empty($table)) {
 
@@ -643,21 +676,8 @@
                                 echo '<br><center>'.$OUTPUT->single_button(new moodle_url($scriptname, $options), get_string('downloadexcel'), 'get', $options).'</center><br>';
                                 if ($term == 99)    {
                                     $options = array('action'=> 'hidemodules', 'yid' => $yid, 'fid' => $fid, 'pid' => $plan->id, 'term' => $term, 'sesskey' => sesskey());
-                                    echo '<br><center>'.$OUTPUT->single_button(new moodle_url($scriptname, $options), 'Скрыть модули', 'get', $options).'</center><br>';
-                                }    
-                                    
-                                    
-                                if (is_siteadmin() || $USER->id == 54087 || $USER->id == 58358) {    
-                                    echo '<br><table align=center><tr><td>';
-                                    $options['action'] = 'shiftleft';
-                                    $options['delta'] = -1;
-                                    echo $OUTPUT->single_button(new moodle_url($scriptname, $options), '<-- Сместить дисциплины на один семестр влево', 'get', $options);
-                                    echo '</td><td>';
-                                    $options['action'] = 'shiftright';
-                                    $options['delta'] = 1;
-                                    echo $OUTPUT->single_button(new moodle_url($scriptname, $options), 'Сместить дисциплины на один семестр вправо -->', 'get', $options);
-                                    echo '</td></tr></table>';                            
-                                }    
+                                    echo '<br><center>'.$OUTPUT->single_button(new moodle_url($scriptname, $options), 'Скрыть модули', 'get', $options).'</center><br>';      
+                                }
                             }    
                      } else {
                         echo '</table>';
@@ -748,6 +768,7 @@ function print_tabs_terms($scriptname, $yid, $fid, $plan, $currtab, $term, $agro
                     $toprow2[] = new tabobject('term102', $scriptname.'&tab=plan&term=102', 'Графики уч. процесса');
                     $toprow2[] = new tabobject('term105', $scriptname.'&tab=plan&term=105', 'Часов в неделю');
                     $toprow2[] = new tabobject('term106', $scriptname.'&tab=plan&term=106', 'Свод');
+                    $toprow2[] = new tabobject('term108', $scriptname.'&tab=plan&term=108', 'Групповые операции с планом');
                     $toprow2[] = new tabobject('term107', $scriptname.'&tab=plan&term=107', 'Журнал операций');
         break;
         

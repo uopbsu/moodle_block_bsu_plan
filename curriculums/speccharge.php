@@ -89,8 +89,10 @@
             
             echo html_writer::table(allpractice_view($yid, $fid, $eid, $edworkid, $copy_in_term));
             
-            echo  '<div align="center">';
-            echo  '<input type="submit" name="copy_in_term" value="Скопировать все виды на следующий учебный год"></div>';
+            if ($fid==19900) {
+              echo  '<div align="center">';
+              echo  '<input type="submit" name="copy_in_term" value="Скопировать все виды на следующий учебный год"></div>';
+            }
             
         }     
    } else {
@@ -105,7 +107,7 @@ function allpractice_view($yid, $fid, $eid, $edworkid = 0, $copy_in_term = 0)
     global $DB, $ACCESS_USER, $ASPIRANTPLAN;
     
     $time0 = time();
-    $select = "editplan=1 and timestart<$time0 and timeend>$time0";
+    $select = "timestart<$time0 and timeend>$time0 and LOCATE('$yid', editplan)>0";
     $ACCESS_USER = $DB->get_records_select_menu('bsu_operator_dean', $select, null, '', 'id, userid');
        
         $table = new html_table();

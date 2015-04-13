@@ -32,7 +32,8 @@
     	$DB->update_record('bsu_plan', $rec);
 
         $curryid = get_current_edyearid();
-        $sql = "yearid = $curryid AND planid = $id";
+//        $sql = "yearid = $curryid AND planid = $id";
+        $sql = " planid = $id ";
         if ($ids = $DB->get_records_select_menu('bsu_edwork_mask', $sql,  null, '', 'id as id1, id as id2')) {
             $strids = implode (',', $ids);
             $DB->delete_records_select('bsu_teachingload', "edworkmaskid in ($strids)");

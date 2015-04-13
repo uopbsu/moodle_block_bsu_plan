@@ -84,8 +84,9 @@ function get_items_menu_bsu_plan (&$items)
                                 $index_items[] = 'disciplines';
                                 $index_items[] = 'searchprepod';
                         }
-                        if(has_capability('block/bsu_plan:editlinksubdepartment', $context))   {                        
-                        		$index_items[] = 'setsubdepartment';
+                        if(has_capability('block/bsu_plan:editlinksubdepartment', $context))   {
+//                            $index_items[] = 'speccharge';
+                            $index_items[] = 'setsubdepartment';
                         }
                     break;
                     

@@ -428,45 +428,207 @@ function table_disciplines($yid, $fid, $plan, $term, $agroups, $showkaf, $tab = 
     return $table;
 }
 
-
-function shift_discipline($fid, $pid, $shift=1)
+function shift_content($fid, $pid, $shift=1)
 {
     global $CFG, $DB, $OUTPUT;
+    
+    $success_disc = 1;
+    $success_pract = 1;
     
     if ($shift>0)   {
         $where = ' вправо';
     } else {
         $where = ' влево';
     }
+       
+    $sql = "SELECT min(numsemestr) as min 
+            FROM mdl_bsu_discipline d
+            inner join mdl_bsu_discipline_semestr ds on d.id=ds.disciplineid
+            WHERE planid=$pid";
+    if ($semestrs = $DB->get_record_sql($sql))  {
+        if ($semestrs->min+$shift<=0) {
+           echo '<center>'.$OUTPUT->error_text("Смещение не может быть произведено, так как в некоторых дисциплинах при попытке смещения значение семестра становится меньше 1.").'</center><br>';         
+           $success_disc = 0; 
+        }  
+     } else {
+        $success_disc = 0;
+     }
     
-    $sql = "update mdl_bsu_discipline a inner join mdl_bsu_discipline_semestr b on a.id=b.disciplineid
-            set b.numsemestr=b.numsemestr+$shift
-            where planid=$pid";
-    if ($DB->Execute($sql)) {
-         echo $OUTPUT->notification("Дисциплины смещены на один семестр $where.", 'notifysuccess');      
-    } else {
-        echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
-    }           
+    $sql = "SELECT min(term) as min 
+            FROM mdl_bsu_plan_practice d
+            WHERE planid=$pid";
+    if ($semestrs = $DB->get_record_sql($sql))  {
+        if ($semestrs->min+$shift<=0) {
+            $success_pract = 0;
+            echo '<center>'.$OUTPUT->error_text("Смещение не может быть произведено, так как в некоторых практиках или спец. видах при попытке смещения значение семестра становится меньше 1.").'</center><br>';         
+        } 
+     } else {
+        $success_pract = 0;
+     }
 
-    $sql = "SELECT id, semestrexamen, semestrzachet, semestrdiffzach
-            FROM mdl_bsu_discipline
-            where planid=$pid";
-    if ($disciplines = $DB->get_records_sql($sql))  {
-        foreach ($disciplines as $discipline)   {
-            if (!empty($discipline->semestrexamen))    {
-                $newex = shift_semestrexamenzachet($discipline->semestrexamen, $shift);
-                $DB->set_field_select('bsu_discipline', 'semestrexamen', $newex, "id = $discipline->id");
+     if ($success_disc&&$success_pract) {   
+       $sql = "update mdl_bsu_discipline a inner join mdl_bsu_discipline_semestr b on a.id=b.disciplineid
+                SET b.numsemestr=b.numsemestr+$shift
+                WHERE planid=$pid";
+        if ($DB->Execute($sql)) {
+            echo $OUTPUT->notification("Дисциплины смещены на " . abs($shift) . " семестр (-а/-ов) $where.", 'notifysuccess');        
+        } else {
+            echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
+        }           
+       
+        $disc_ids = $pract_ids = array();
+        
+        $sql = "SELECT id, semestrexamen, semestrzachet, semestrdiffzach, semestrkursovik, semestrkp
+                FROM mdl_bsu_discipline
+                WHERE planid=$pid";
+        if ($disciplines = $DB->get_records_sql($sql))  {
+            foreach ($disciplines as $discipline)   {
+                $disc_ids[] = $discipline->id;
+                if (!empty($discipline->semestrexamen))    {
+                    $newex = shift_semestrexamenzachet($discipline->semestrexamen, $shift);
+                    $DB->set_field_select('bsu_discipline', 'semestrexamen', $newex, "id = $discipline->id");
+                }
+                if (!empty($discipline->semestrzachet))    {
+                    $newex = shift_semestrexamenzachet($discipline->semestrzachet, $shift);
+                    $DB->set_field_select('bsu_discipline', 'semestrzachet', $newex, "id = $discipline->id");
+                }
+                if (!empty($discipline->semestrdiffzach))    {
+                    $newex = shift_semestrexamenzachet($discipline->semestrdiffzach, $shift);
+                    $DB->set_field_select('bsu_discipline', 'semestrdiffzach', $newex, "id = $discipline->id");
+                }
+                if (!empty($discipline->semestrkursovik))    {
+                    $newex = shift_semestrexamenzachet($discipline->semestrkursovik, $shift);
+                    $DB->set_field_select('bsu_discipline', 'semestrkursovik', $newex, "id = $discipline->id");
+                }
+                if (!empty($discipline->semestrkp))    {
+                    $newex = shift_semestrexamenzachet($discipline->semestrkp, $shift);
+                    $DB->set_field_select('bsu_discipline', 'semestrkp', $newex, "id = $discipline->id");
+                }
             }
-            if (!empty($discipline->semestrzachet))    {
-                $newex = shift_semestrexamenzachet($discipline->semestrzachet, $shift);
-                $DB->set_field_select('bsu_discipline', 'semestrzachet', $newex, "id = $discipline->id");
-            }
-            if (!empty($discipline->semestrdiffzach))    {
-                $newex = shift_semestrexamenzachet($discipline->semestrdiffzach, $shift);
-                $DB->set_field_select('bsu_discipline', 'semestrdiffzach', $newex, "id = $discipline->id");
+        } 
+        
+        $disc_ids = implode(",",$disc_ids);
+        
+        $sql = "SELECT id
+                FROM mdl_bsu_plan_practice
+                WHERE planid=$pid";
+        if ($practices = $DB->get_records_sql($sql))  {
+            foreach ($practices as $practice)   {
+               $pract_ids[] = $practice->id; 
             }
         }
-    }        
+        
+        $pract_ids = implode(",",$pract_ids);
+        
+        $sched_mask_ids = array();
+        
+        $sql="SELECT id
+              FROM mdl_bsu_schedule_mask
+              WHERE disciplineid in ($disc_ids)";
+         if ($shed_masks = $DB->get_records_sql($sql))  { 
+            foreach ($shed_masks as $shed_mask)   {
+               $sched_mask_ids[] = $shed_mask->id;
+            }
+         }
+         
+        $sched_mask_ids = implode(",",$sched_mask_ids);
+         
+        $sql = "UPDATE mdl_bsu_schedule
+                SET term=term+$shift
+                WHERE schedulemaskid in ($sched_mask_ids)";
+        if ($DB->Execute($sql)) {
+            $sql = "UPDATE mdl_bsu_schedule_mask
+                    SET term=term+$shift
+                    WHERE disciplineid in ($disc_ids)";
+            if ($DB->Execute($sql)) {    
+               echo $OUTPUT->notification("Расписание дисциплин смещено на " . abs($shift) . " семестр (-а/-ов) $where.", 'notifysuccess');        
+            } else {
+                echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
+            }  
+        } else {
+            echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
+        }   
+        
+        $sql = "UPDATE mdl_bsu_discipline_synonym
+                SET term=term+$shift
+                WHERE planid=$pid";
+        if ($DB->Execute($sql)) {
+            $sql = "UPDATE mdl_bsu_discipline_synonym
+                    SET s_term=s_term+$shift
+                    WHERE s_planid=$pid";
+            if ($DB->Execute($sql)) {    
+               echo $OUTPUT->notification("Синонимы дисциплин смещены на " . abs($shift) . " семестр (-а/-ов) $where.", 'notifysuccess');        
+            } else {
+                echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
+            }  
+        } else {
+            echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
+        } 
+        
+        $sql = "UPDATE mdl_bsu_plan_practice
+                SET term=term+$shift
+                WHERE planid=$pid";
+        if ($DB->Execute($sql)) {
+            echo $OUTPUT->notification("Практики и спец. виды смещены на " . abs($shift) . " семестр (-а/-ов) $where.", 'notifysuccess');        
+        } else {
+            echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
+        } 
+        
+        $group_ids = array();
+        
+        $sql_group="SELECT groupid FROM dean.mdl_bsu_plan_groups where planid=$pid";
+        if ($groups = $DB->get_records_sql($sql_group))  { 
+            foreach ($groups as $group)   {
+                $group_ids[] = $group->groupid;
+            }
+        }
+        
+        $group_ids = implode(",",$group_ids);
+        
+        $shift_cid = (int) floor($shift / 2);
+        $shift_pol = $shift - $shift_cid*2;
+       
+        $sql = "UPDATE mdl_bsu_marksheet_students
+                SET pol=pol+$shift_pol, cid=cid+$shift_cid
+                WHERE (disciplineid in ($disc_ids) and edwork!=1) or  (disciplineid in ($pract_ids) and edwork=1)";
+        if ($DB->Execute($sql)) {
+           $sql = "UPDATE mdl_bsu_marksheet
+                SET pol=pol+$shift_pol, cid=cid+$shift_cid
+                WHERE (disciplineid in ($disc_ids) and edwork!=1) or (disciplineid in ($pract_ids) and edwork=1) or (groupid in ($group_ids))";
+            if ($DB->Execute($sql)) {    
+               echo $OUTPUT->notification("Данные по успеваемости по дисциплинам смещены на " . abs($shift) . " семестр (-а/-ов) $where.", 'notifysuccess');        
+            } else {
+                echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
+            }  
+        } else {
+            echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
+        } 
+
+        /*all*/
+        //bsu_plan_practice_semestr_shacht - ?????
+        //bsu_plan_practice_shacht - ????
+        
+        $sql="SELECT table_name, COLUMN_NAME
+              FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE (table_name like '%bsu_plan_weeks_hours%' or table_name like '%bsu_schedule_practice%' or table_name like '%bsu_schedule_term%' or table_name like '%bsu_edwork%' or table_name like '%bsu_discipline_stream_mask%')
+              AND table_schema = 'dean' and (COLUMN_NAME like '%term%' or COLUMN_NAME like '%sem%')";
+        $success = 1;
+        if ($table_fields = $DB->get_records_sql($sql))  {
+            foreach ($table_fields as $table_field)   {
+              $sql_update="UPDATE $table_field->table_name 
+                           SET $table_field->column_name=$table_field->column_name+$shift
+                           WHERE planid=$pid";
+              if (!$DB->Execute($sql_update)) {
+                $success = 0;
+              }              
+            }
+        }
+        if ($success) {
+            echo $OUTPUT->notification("Потоки, нагрузка и другие данные плана смещены на " . abs($shift) . " семестр (-а/-ов) $where.", 'notifysuccess');        
+        } else {
+            echo $OUTPUT->notification('Ошибка при выполнении запроса: '. $sql);
+        } 
+   }
 }
 
 

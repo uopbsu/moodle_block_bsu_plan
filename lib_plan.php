@@ -32,7 +32,8 @@ function listbox_department($scriptname, &$fid, $isshortname=false)
     } else {
     	$strsql = "SELECT a.id, roleid, contextid, contextlevel, instanceid, path, depth 
     			   FROM mdl_role_assignments a	RIGHT JOIN mdl_context ctx ON a.contextid=ctx.id
-    			   WHERE userid={$USER->id}";
+    			   WHERE userid={$USER->id}
+                   order by roleid desc";
 //print $strsql.'<hr>';
         $arrroleid  = get_array_roleid(); 
 //print_object($arrroleid); 
@@ -66,6 +67,7 @@ function listbox_department($scriptname, &$fid, $isshortname=false)
     										if($ctx1->roleid == $arrroleid['zavkaf']) {
     											$listsfid = -1;							
 											} else {
+                                                if($listsfid == -1) $listsfid = '';
 												$listsfid .= $ctx1->instanceid . ',';
 											}
     										 break;
@@ -79,12 +81,14 @@ function listbox_department($scriptname, &$fid, $isshortname=false)
 												//  print_object($ctx1);    
 												$d = $contexts[$ctx1->depth - 1];
 												$ctxsubdep = $DB->get_record_select('context', "id = $d");
+                                                if($listsfid == -1) $listsfid = '';
 												$listsfid .= $ctxsubdep->instanceid . ',';
 											}
     	 			}
-    	 			
-    	 			if 	($listsfid == -1) break;
+//    	 			print_object($listsfid);
+    	 			//if 	($listsfid == -1) break;
     			}
+                
     	 }		 
 	 }
      

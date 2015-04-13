@@ -26,7 +26,7 @@
     require_login();
     
     $time0 = time();
-    $select = "editplan=1 and timestart<$time0 and timeend>$time0";
+    $select = "timestart<$time0 and timeend>$time0 and LOCATE('$yid', editplan)>0";
     $ACCESS_USER = $DB->get_records_select_menu('bsu_operator_dean', $select, null, '', 'id, userid');
 
 
@@ -49,7 +49,7 @@
     $PAGE->set_cacheable(true);
     //$PAGE->set_button('$nbsp;');
     $PAGE->navbar->add($strtitle, new moodle_url("{$CFG->BSU_PLAN}/index.php", array()));
-    $PAGE->navbar->add($strtitle2, new moodle_url("curriculums.php", array('yid' => $yid, 'fid' => $fid, 'tab' => $plantab)));
+    $PAGE->navbar->add($strtitle2, new moodle_url("curriculums.php", array('fid' => $fid)));
     $PAGE->navbar->add($strtitle3, new moodle_url("disciplines.php", array('yid' => $yid, 'fid' => $fid, 'pid' => $pid, 
                                                                            'gid' => $gid, 'term' => $term, 'tab' => $plantab)));
     $PAGE->navbar->add($strscript);
@@ -377,7 +377,7 @@ function table_subgroups($yid, $fid, $pid, $term, $gid, $did, $countstudgroup, $
             } else {
                 $cnt = $DB->count_records_select('bsu_discipline_subgroup_members', "subgroupid=$sub->id and deleted=0");
                 if ($cnt==0) {
-                   $cnt=$sub->countstud;
+                   $cnt="<input type=text name=num_z_{$sub->id} size=5 value=\"$sub->countstud\">";
                 }
                 $strcountstud = $cnt;
             }

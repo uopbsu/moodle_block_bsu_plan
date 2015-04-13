@@ -13,6 +13,8 @@
     $sid = optional_param('sid', 0, PARAM_INT);					// speciality id
     $action = optional_param('action', '', PARAM_ACTION);		// action
     $tab = optional_param('tab', '', PARAM_ACTION);				// action
+    $plantab = optional_param('plantab', '', PARAM_ACTION);				// action
+    
     $yid = optional_param('yid', 0, PARAM_INT);					// current year
     $sdid = optional_param('sdid', 0, PARAM_INT);				// subdepartment id
     $id = optional_param('id', 0, PARAM_INT);					// id record from table bsu_discipline_subdepartment_zav
@@ -76,7 +78,7 @@
     $PAGE->set_focuscontrol('');
     $PAGE->navbar->add($strtitle,  new moodle_url("$CFG->BSU_PLAN/index.php", array()));
     $PAGE->navbar->add($strtitle2, new moodle_url("curriculums.php", array('fid' => $fid)));
-    $PAGE->navbar->add($strtitle3, new moodle_url("disciplines.php", array('fid' => $fid, 'pid' => $planid, 'term' => $term)));
+    $PAGE->navbar->add($strtitle3, new moodle_url("disciplines.php", array('fid' => $fid, 'pid' => $planid, 'tab' => $plantab, 'yid' => $yid)));
     $PAGE->navbar->add($strscript);
     echo $OUTPUT->header();
 

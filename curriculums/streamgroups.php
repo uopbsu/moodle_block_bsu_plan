@@ -30,7 +30,7 @@
     
     
     $time0 = time();
-    $select = "editplan=1 and timestart<$time0 and timeend>$time0";
+    $select = "timestart<$time0 and timeend>$time0 and LOCATE('$yid', editplan)>0";
     $ACCESS_USER = $DB->get_records_select_menu('bsu_operator_dean', $select, null, '', 'id, userid');
     
 
